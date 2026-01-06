@@ -131,9 +131,10 @@ const els = {
     slider: document.getElementById('planner-slider'),
     planJkt: document.getElementById('plan-jkt'),
     planJktDay: document.getElementById('plan-jkt-day'),
+    planJktStatus: document.getElementById('plan-jkt-status'),
     planDe: document.getElementById('plan-de'),
     planDeDay: document.getElementById('plan-de-day'),
-    planStatusBox: document.getElementById('plan-status-box')
+    planDeStatus: document.getElementById('plan-de-status')
 };
 
 let plannerOffsetMinutes = 0;
@@ -284,9 +285,15 @@ function updatePlannerUI(baseDate) {
     const deM = berlinDate.getMinutes();
     els.planDe.innerText = `${deH.toString().padStart(2,'0')}:${deM.toString().padStart(2,'0')}`;
 
+    // Update Jakarta status
+    const jktStat = getStatus(hours);
+    els.planJktStatus.innerHTML = jktStat.text;
+    els.planJktStatus.className = `mt-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${jktStat.color} ${jktStat.bg} ${jktStat.border}`;
+
+    // Update Berlin status
     const deStat = getStatus(deH);
-    els.planStatusBox.innerHTML = deStat.text;
-    els.planStatusBox.className = `px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${deStat.color} ${deStat.bg} ${deStat.border}`;
+    els.planDeStatus.innerHTML = deStat.text;
+    els.planDeStatus.className = `mt-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${deStat.color} ${deStat.bg} ${deStat.border}`;
 
     if (berlinDate.getDate() !== sliderDate.getDate()) {
         els.planDeDay.innerText = t.yesterday;
