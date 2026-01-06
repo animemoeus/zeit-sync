@@ -310,6 +310,147 @@ function resetPlanner() {
 }
 
 // ============================================
+// CURSOR EFFECT
+// ============================================
+class CursorEffect {
+    constructor() {
+        this.canvas = document.getElementById('cursor-canvas');
+        if (!this.canvas) return;
+        
+        this.ctx = this.canvas.getContext('2d');
+        this.particles = [];
+        this.mouse = { x: 0, y: 0 };
+        this.hue = 200;
+        this.glowOpacity = 0;
+        this.targetGlowOpacity = 0;
+        this.isMouseInside = false;
+        this.lastMouseMoveTime = Date.now();
+        this.fadeOutDelay = 2000; // Start fading after 2 seconds of inactivity
+        
+        this.init();
+    }
+    
+    init() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        window.addEventListener('mousemove', (e) => this.handleMouseMove(e));
+        window.addEventListener('mouseenter', () => this.handleMouseEnter());
+        window.addEventListener('mouseleave', () => this.handleMouseLeave());
+        this.animate();
+    }
+    
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    }
+    
+    handleMouseMove(e) {
+        this.mouse.x = e.clientX;
+        this.mouse.y = e.clientY;
+        this.lastMouseMoveTime = Date.now();
+        this.targetGlowOpacity = 1;
+        this.isMouseInside = true;
+        
+        // Create new particles on mouse move (only when active)
+        if (this.glowOpacity > 0.3) {
+            for (let i = 0; i < 3; i++) {
+                this.particles.push(new Particle(this.mouse.x, this.mouse.y, this.hue));
+            }
+        }
+        
+        // Cycle through hue for rainbow effect
+        this.hue += 0.5;
+        if (this.hue > 360) this.hue = 0;
+    }
+    
+    handleMouseEnter() {
+        this.isMouseInside = true;
+        this.targetGlowOpacity = 1;
+    }
+    
+    handleMouseLeave() {
+        this.isMouseInside = false;
+        this.targetGlowOpacity = 0;
+    }
+    
+    animate() {
+        // Clear with fade effect for trails
+        this.ctx.fillStyle = 'rgba(15, 23, 42, 0.1)';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Check for inactivity
+        const timeSinceLastMove = Date.now() - this.lastMouseMoveTime;
+        if (timeSinceLastMove > this.fadeOutDelay && this.isMouseInside) {
+            this.targetGlowOpacity = 0;
+        }
+        
+        // Smoothly interpolate glow opacity (slower = smoother)
+        this.glowOpacity += (this.targetGlowOpacity - this.glowOpacity) * 0.05;
+        
+        // Draw gradient glow at cursor position (with fade effect)
+        if (this.mouse.x && this.mouse.y && this.glowOpacity > 0.01) {
+            const gradient = this.ctx.createRadialGradient(
+                this.mouse.x, this.mouse.y, 0,
+                this.mouse.x, this.mouse.y, 150
+            );
+            gradient.addColorStop(0, `hsla(${this.hue}, 100%, 60%, ${0.3 * this.glowOpacity})`);
+            gradient.addColorStop(0.5, `hsla(${this.hue + 30}, 100%, 50%, ${0.1 * this.glowOpacity})`);
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillRect(
+                this.mouse.x - 150, 
+                this.mouse.y - 150, 
+                300, 
+                300
+            );
+        }
+        
+        // Update and draw particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            this.particles[i].update();
+            this.particles[i].draw(this.ctx);
+            
+            if (this.particles[i].alpha <= 0) {
+                this.particles.splice(i, 1);
+            }
+        }
+        
+        requestAnimationFrame(() => this.animate());
+    }
+}
+
+class Particle {
+    constructor(x, y, hue) {
+        this.x = x;
+        this.y = y;
+        this.size = Math.random() * 3 + 1;
+        this.speedX = (Math.random() - 0.5) * 2;
+        this.speedY = (Math.random() - 0.5) * 2;
+        this.hue = hue;
+        this.alpha = 1;
+        this.decay = Math.random() * 0.02 + 0.01;
+    }
+    
+    update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        this.alpha -= this.decay;
+        if (this.size > 0.2) this.size -= 0.05;
+    }
+    
+    draw(ctx) {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.fillStyle = `hsl(${this.hue}, 100%, 60%)`;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+}
+
+// ============================================
 // INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -325,4 +466,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Start clock updates
     setInterval(updateClocks, 1000);
     updateClocks();
+    
+    // Initialize cursor effect
+    new CursorEffect();
 });
