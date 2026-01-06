@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Sync: Jakarta - Jerman</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+        
+        .mono-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* Custom Scrollbar for range input */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #38bdf8;
+            cursor: pointer;
+            margin-top: -10px;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+        }
+        
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+
+    <!-- Background Elements -->
+    <div class="absolute top-0 left-0 w-full h-full overflow-hidden -z-10">
+        <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-blue-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div class="absolute top-[-10%] right-[-10%] w-96 h-96 bg-purple-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div class="absolute bottom-[-10%] left-[20%] w-96 h-96 bg-indigo-600 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+    </div>
+
+    <header class="mb-8 text-center">
+        <h1 class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400 mb-2">
+            Remote Sync
+        </h1>
+        <p class="text-slate-400 text-sm">Jakarta (WIB) ↔ Berlin (CET/CEST)</p>
+    </header>
+
+    <!-- Main Clocks Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mb-10">
+        
+        <!-- Jakarta Card -->
+        <div class="glass-panel rounded-2xl p-6 shadow-xl border-t-4 border-blue-500 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">🇮🇩</div>
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-blue-400">Jakarta</h2>
+                    <p class="text-xs text-slate-400">Home Base</p>
+                </div>
+                <div class="px-2 py-1 rounded text-xs font-bold bg-slate-700 text-slate-300">
+                    UTC +7
+                </div>
+            </div>
+            
+            <div class="text-center py-4">
+                <div id="jkt-time" class="mono-font text-5xl md:text-6xl font-bold tracking-tight text-white mb-2">00:00</div>
+                <div id="jkt-date" class="text-slate-300 font-medium">Loading...</div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center text-sm">
+                <span class="text-slate-400">Status:</span>
+                <span id="jkt-status" class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-gray-500"></span>
+                    Checking...
+                </span>
+            </div>
+        </div>
+
+        <!-- Germany Card -->
+        <div class="glass-panel rounded-2xl p-6 shadow-xl border-t-4 border-amber-500 relative overflow-hidden group">
+            <div class="absolute top-0 right-0 p-4 opacity-10 text-6xl">🇩🇪</div>
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-amber-400">Berlin</h2>
+                    <p class="text-xs text-slate-400">Remote Office</p>
+                </div>
+                <div id="de-offset" class="px-2 py-1 rounded text-xs font-bold bg-slate-700 text-slate-300">
+                    UTC +1
+                </div>
+            </div>
+            
+            <div class="text-center py-4">
+                <div id="de-time" class="mono-font text-5xl md:text-6xl font-bold tracking-tight text-white mb-2">00:00</div>
+                <div id="de-date" class="text-slate-300 font-medium">Loading...</div>
+                <!-- Added Season Indicator -->
+                <div id="de-season" class="text-xs font-mono mt-1 opacity-80">Checking DST...</div>
+            </div>
+
+            <div class="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center text-sm">
+                <span class="text-slate-400">Status:</span>
+                <span id="de-status" class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-gray-500"></span>
+                    Checking...
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meeting Planner Section -->
+    <div class="w-full max-w-4xl glass-panel rounded-2xl p-6 md:p-8">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Meeting Planner
+            </h3>
+            <button onclick="resetPlanner()" class="text-xs bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded transition">
+                Reset ke Sekarang
+            </button>
+        </div>
+
+        <div class="mb-8">
+            <label class="block text-sm text-slate-400 mb-4">Geser untuk melihat waktu di Berlin saat jam tertentu di Jakarta:</label>
+            <input type="range" id="planner-slider" min="0" max="1439" value="720" class="w-full">
+            <div class="flex justify-between text-xs text-slate-500 mt-2 mono-font">
+                <span>00:00</span>
+                <span>06:00</span>
+                <span>12:00</span>
+                <span>18:00</span>
+                <span>23:59</span>
+            </div>
+        </div>
+
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-900/50 p-6 rounded-xl border border-slate-700/50">
+            <div class="text-center w-full">
+                <div class="text-xs text-blue-400 uppercase tracking-wider mb-1">Waktu Jakarta</div>
+                <div id="plan-jkt" class="text-3xl font-bold mono-font text-white">12:00</div>
+                <div id="plan-jkt-day" class="text-xs text-slate-400 mt-1">Hari Ini</div>
+            </div>
+
+            <div class="text-2xl text-slate-600 hidden md:block">→</div>
+            <div class="h-px w-full bg-slate-700 md:hidden"></div>
+
+            <div class="text-center w-full">
+                <div class="text-xs text-amber-400 uppercase tracking-wider mb-1">Waktu Berlin</div>
+                <div id="plan-de" class="text-3xl font-bold mono-font text-white">06:00</div>
+                <div id="plan-de-day" class="text-xs text-slate-400 mt-1">Hari Ini</div>
+            </div>
+
+            <div class="h-px w-full bg-slate-700 md:hidden"></div>
+
+            <div class="text-center w-full md:w-auto min-w-[140px]">
+                <div id="plan-status-box" class="bg-red-500/10 text-red-400 px-4 py-2 rounded-lg border border-red-500/20 text-sm font-medium">
+                    Di Luar Jam Kerja
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="mt-8 text-slate-500 text-xs text-center">
+        <p>Germany observes Daylight Saving Time (DST).<br>Perbedaan waktu bisa 5 atau 6 jam.</p>
+    </footer>
+
+    <script>
+        // Configuration
+        const zones = {
+            jakarta: 'Asia/Jakarta',
+            berlin: 'Europe/Berlin'
+        };
+
+        const workHours = {
+            start: 9, // 9 AM
+            end: 18   // 6 PM
+        };
+
+        // DOM Elements
+        const els = {
+            jktTime: document.getElementById('jkt-time'),
+            jktDate: document.getElementById('jkt-date'),
+            jktStatus: document.getElementById('jkt-status'),
+            deTime: document.getElementById('de-time'),
+            deDate: document.getElementById('de-date'),
+            deSeason: document.getElementById('de-season'), // New Element
+            deStatus: document.getElementById('de-status'),
+            deOffset: document.getElementById('de-offset'),
+            slider: document.getElementById('planner-slider'),
+            planJkt: document.getElementById('plan-jkt'),
+            planJktDay: document.getElementById('plan-jkt-day'),
+            planDe: document.getElementById('plan-de'),
+            planDeDay: document.getElementById('plan-de-day'),
+            planStatusBox: document.getElementById('plan-status-box')
+        };
+
+        let plannerOffsetMinutes = 0; // Offset from current time for the planner
+        let isPlannerActive = false;
+
+        function getFormattedTime(date, timeZone) {
+            return new Intl.DateTimeFormat('id-ID', {
+                timeZone,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: isPlannerActive ? undefined : '2-digit',
+                hour12: false
+            }).format(date);
+        }
+
+        function getFormattedDate(date, timeZone) {
+            return new Intl.DateTimeFormat('id-ID', {
+                timeZone,
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long'
+            }).format(date);
+        }
+
+        function getHour(date, timeZone) {
+            const str = new Intl.DateTimeFormat('en-US', {
+                timeZone,
+                hour: 'numeric',
+                hour12: false
+            }).format(date);
+            return parseInt(str);
+        }
+
+        function getStatus(hour) {
+            const isWorking = hour >= workHours.start && hour < workHours.end;
+            if (isWorking) {
+                return {
+                    text: 'Jam Kerja',
+                    color: 'text-green-400',
+                    dot: 'bg-green-500',
+                    bg: 'bg-green-500/10',
+                    border: 'border-green-500/20'
+                };
+            } else if (hour >= 22 || hour < 6) {
+                return {
+                    text: 'Malam/Tidur',
+                    color: 'text-indigo-400',
+                    dot: 'bg-indigo-500',
+                    bg: 'bg-indigo-500/10',
+                    border: 'border-indigo-500/20'
+                };
+            } else {
+                return {
+                    text: 'Personal Time',
+                    color: 'text-slate-400',
+                    dot: 'bg-slate-500',
+                    bg: 'bg-slate-500/10',
+                    border: 'border-slate-500/20'
+                };
+            }
+        }
+
+        function updateClocks() {
+            const now = new Date();
+
+            // Jakarta
+            els.jktTime.innerText = getFormattedTime(now, zones.jakarta);
+            els.jktDate.innerText = getFormattedDate(now, zones.jakarta);
+            
+            const jktHour = getHour(now, zones.jakarta);
+            const jktStat = getStatus(jktHour);
+            els.jktStatus.innerHTML = `<span class="w-2 h-2 rounded-full ${jktStat.dot} animate-pulse"></span> ${jktStat.text}`;
+            els.jktStatus.className = `flex items-center gap-2 ${jktStat.color}`;
+
+            // Berlin
+            els.deTime.innerText = getFormattedTime(now, zones.berlin);
+            els.deDate.innerText = getFormattedDate(now, zones.berlin);
+            
+            const deHour = getHour(now, zones.berlin);
+            const deStat = getStatus(deHour);
+            els.deStatus.innerHTML = `<span class="w-2 h-2 rounded-full ${deStat.dot} animate-pulse"></span> ${deStat.text}`;
+            els.deStatus.className = `flex items-center gap-2 ${deStat.color}`;
+
+            // Calculate Offset Dynamically (Handles DST)
+            // We create strings and compare hours because direct subtraction is tricky with TZ
+            const jktDateObj = new Date(now.toLocaleString('en-US', { timeZone: zones.jakarta }));
+            const deDateObj = new Date(now.toLocaleString('en-US', { timeZone: zones.berlin }));
+            
+            // Since JKT is ahead, diff is positive. But usually we say Berlin is UTC+X.
+            // Let's just show Berlin's UTC offset.
+            // A quick hack to get offset:
+            const deOffsetString = new Intl.DateTimeFormat('en-US', { timeZone: zones.berlin, timeZoneName: 'shortOffset' }).format(now);
+            const offsetPart = deOffsetString.split('GMT')[1] || deOffsetString.split('UTC')[1]; // e.g. "+1", "+01:00", "+2"
+            
+            // Logic to detect DST (Summer Time) specifically for Germany
+            // Berlin is UTC+1 (CET) in Winter, UTC+2 (CEST) in Summer
+            let isDST = false;
+            if (offsetPart && (offsetPart.includes('+2') || offsetPart.includes('+02'))) {
+                isDST = true;
+            }
+
+            // Update UI with explicit DST info
+            if(offsetPart) {
+                const zoneName = isDST ? 'CEST' : 'CET';
+                els.deOffset.innerText = `UTC ${offsetPart} • ${zoneName}`;
+                
+                if (isDST) {
+                    els.deSeason.innerHTML = `<span class="text-amber-300">☀ Musim Panas (DST Aktif)</span>`;
+                    els.deSeason.title = "Selisih 5 jam dengan Jakarta";
+                } else {
+                    els.deSeason.innerHTML = `<span class="text-blue-300">❄ Waktu Standar</span>`;
+                    els.deSeason.title = "Selisih 6 jam dengan Jakarta";
+                }
+            }
+
+            if (!isPlannerActive) {
+                // Sync slider to current Jakarta time if user hasn't touched it yet
+                const currentTotalMinutes = (now.getHours() * 60) + now.getMinutes();
+                els.slider.value = currentTotalMinutes;
+                updatePlannerUI(now); 
+            }
+        }
+
+        function updatePlannerUI(baseDate) {
+            // Get value from slider (minutes from 00:00 Jakarta time)
+            const sliderVal = parseInt(els.slider.value);
+            const hours = Math.floor(sliderVal / 60);
+            const minutes = sliderVal % 60;
+
+            // Create a date object set to today's date in Jakarta at the slider time
+            // We use the baseDate (now) to get Year-Month-Day
+            // We need to be careful constructing dates to avoid local timezone interference
+            
+            // 1. Get current Jakarta date parts
+            const parts = new Intl.DateTimeFormat('en-US', {
+                timeZone: zones.jakarta,
+                year: 'numeric', month: 'numeric', day: 'numeric'
+            }).formatToParts(baseDate);
+            
+            const y = parts.find(p => p.type === 'year').value;
+            const m = parts.find(p => p.type === 'month').value;
+            const d = parts.find(p => p.type === 'day').value;
+
+            // Construct a "Jakarta Time" string for the slider position
+            const jktIsoString = `${y}-${m.padStart(2,'0')}-${d.padStart(2,'0')}T${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}:00`;
+            
+            // Create a Date object. Note: inputting string without Z implies local, but we want to force this to be treated as Jakarta time.
+            // The safest way in JS without libraries like Moment/Luxon is tricky.
+            // Let's try creating a UTC date based on the known offset, or simpler:
+            // Just assume the baseDate is close enough for relative calculation.
+            
+            // Let's use a robust relative approach:
+            // Find difference between current real Jakarta time and slider time
+            const jktNow = new Date(baseDate.toLocaleString('en-US', { timeZone: zones.jakarta }));
+            const sliderDate = new Date(jktNow);
+            sliderDate.setHours(hours, minutes, 0, 0);
+
+            // If slider is drastically different from "now", we assume it's still "today"
+            // The sliderDate now holds the time as if it were local time. We need to project this to Berlin.
+            
+            // Actually, simpler logic:
+            // 1. Display slider value as Jakarta Time
+            els.planJkt.innerText = `${hours.toString().padStart(2,'0')}:${minutes.toString().padStart(2,'0')}`;
+            
+            // 2. Calculate Berlin time by subtracting the difference
+            // Re-calculate live difference in ms
+            const liveJkt = new Date(new Date().toLocaleString('en-US', { timeZone: zones.jakarta }));
+            const liveDe = new Date(new Date().toLocaleString('en-US', { timeZone: zones.berlin }));
+            const diffMs = liveJkt - liveDe; // Positive if JKT is ahead
+
+            // Berlin Time = Slider Time (as Date obj) - diff
+            const berlinDate = new Date(sliderDate.getTime() - diffMs);
+            
+            const deH = berlinDate.getHours();
+            const deM = berlinDate.getMinutes();
+            els.planDe.innerText = `${deH.toString().padStart(2,'0')}:${deM.toString().padStart(2,'0')}`;
+
+            // Status Update for Berlin
+            const deStat = getStatus(deH);
+            els.planStatusBox.innerHTML = deStat.text;
+            els.planStatusBox.className = `px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${deStat.color} ${deStat.bg} ${deStat.border}`;
+
+            // Day indicator
+            // If Berlin day is different from Jakarta day
+            if (berlinDate.getDate() !== sliderDate.getDate()) {
+                els.planDeDay.innerText = "Kemarin"; // Berlin is behind, so it's usually previous day if diff
+            } else {
+                els.planDeDay.innerText = "Hari Ini";
+            }
+        }
+
+        function resetPlanner() {
+            isPlannerActive = false;
+            updateClocks();
+        }
+
+        // Event Listeners
+        els.slider.addEventListener('input', () => {
+            isPlannerActive = true;
+            updatePlannerUI(new Date());
+        });
+
+        // Init
+        setInterval(updateClocks, 1000);
+        updateClocks();
+
+    </script>
+</body>
+</html>
